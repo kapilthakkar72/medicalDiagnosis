@@ -243,11 +243,6 @@ network read_network()
             {
                 
             }
-     		
-     		
-
-    		
-    		
     	}
     	
     	if(find==1)
