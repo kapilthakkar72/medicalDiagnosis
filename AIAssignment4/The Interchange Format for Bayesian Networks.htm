@@ -1,0 +1,664 @@
+<html><head>
+<meta http-equiv="content-type" content="text/html; charset=windows-1252">
+
+<title>The Interchange Format for Bayesian Networks</title>
+
+</head>
+
+<body bgcolor="#FFFDDD">
+
+<center>
+<table align="center" border="0">
+        <tbody><tr>
+                <td><img src="The%20Interchange%20Format%20for%20Bayesian%20Networks_files/hello-t.htm" height="262" width="213"></td>
+		<td><h1>The Interchange Format for Bayesian Networks</h1></td>
+	      </tr>
+</tbody></table>
+</center>
+	
+<hr>
+	
+<h2>Introduction </h2>
+
+This page describes a proposed format for interchange of Bayesian networks
+between researchers in the field. The Interchange Format is a vehicle for
+interoperability of belief network tools and aims at facilitating
+comparison and discussion of research results.
+The Interchange Format resembles the 
+<a href="http://www.research.microsoft.com/research/dtg/bnformat/default.htm">Bayesian
+Network Interchange Format proposal</a>, 
+referred to as BNIF. Simplifications were made such that a parser
+for the Interchange Format can be easily built and prototyped. 
+<p>
+The goal of the current implementation is to agree on a format
+that can represent networks with discrete variables. Several extensions
+will be entertained for next releases of the format.
+</p><p>
+This document gives a brief overview of the basics of the proposed
+Interchange Format. Open issues are emphasized in bold font.
+</p><hr>
+
+<h2>Basics</h2>
+
+The Interchange Format uses only ASCII symbols and expects one stream to
+contain a single network (a stream is either a file, a socket, etc).
+It seems reasonable to find a common file extension for input files, which
+could also be used as an acronym for the Interchange Format. 
+At this point there is no agreement on this.
+<strong>How about bif (for Bayesian Interchange Format) or
+dsc (as suggested in the BNIF)?</strong>
+<p>
+White spaces, tabs and newlines are ignored; the C/C++ style of comments 
+(//... and multi-line /*...*/ comment sequences) are adopted.
+Two other characters are also ignored when they occur between tokens:
+"," and "|". These characters can be used to separate variables in the
+definition of a probability distribution.
+</p><p>
+The basic unit of information is a
+<em>block</em>: a piece of text which starts with a keyword and
+ends with the end of an attribute list (to be explained later).
+Arbitrary characters are allowed between blocks. This allows the
+user to insert arbitrarily long comments outside the blocks,
+and reserve the //, /* */, comments to be placed inside blocks.
+It also allows user-specific blocks and commands to be placed
+outside the standard blocks.
+</p><p>
+Other than blocks, the Interchange Format refers to three entities:
+words, non-negative integers and non-negative reals.
+</p><p>
+A <em>word</em> is a contiguous sequence of
+characters, with the restriction
+that the first character be a letter. Characters are
+letters plus numbers plus the underline symbol (_) plus the
+dash symbol (-).
+</p><p>
+A <em>non-negative integer</em> is a sequence of numeric characters which
+is not followed by a decimal point or an exponent. The first character
+of a non-negative integer has to be larger than zero.
+A <em>non-negative real</em> is a sequence of numeric characters, containing
+a decimal point or an exponent or both. Notice that there is no
+overlap between non-negative integer and reals; for example the
+sequence "88" is an integer but not a real, and the sequence
+"88.0" is a real but not an integer. Finally "088" is not an integer
+nor a real. These conventions roughly follow
+the Java language and are also used by many C compilers
+<strong>(should these conventions be changed?)</strong>.
+
+</p><h3>Blocks</h3>
+
+A <em>block</em> is a unit of information.
+The general format of a block is:
+<pre width="132">     block-type block-name {
+       attribute-name  attribute-value;
+       attribute-name  attribute-value;
+       attribute-name  attribute-value;
+     }
+</pre>
+with as many attributes as necessary. The closing semicolon is mandatory
+after each attribute.
+<p>
+There are three possible blocks:
+<em>network</em>, <em>variable</em> and <em>probability</em> blocks.
+</p><dl>
+<li> A <em>network</em> block defines the name of the network and lists
+    the properties. Example:
+    <pre>    network Robot-Planning {
+       property version 1.1;
+       property author Nobody;
+    }
+    </pre>
+</li><li> <em>Variable</em> blocks define the variables in a network.
+    <strong>These blocks used to be called <em>node</em> blocks in the
+    BNIF; it seems that <em>variable</em> conveys more of a statistical
+    meaning while <em>node</em> just refers to a graphical concept.
+    Opinions?</strong> Example:
+    <pre>    variable Leg {
+      type discrete[2] { long, short };
+      property temporary yes;
+    }
+    </pre>
+</li><li> <em>Probability</em> blocks specify the (conditional) probability
+    tables (CPTs) for these variables, and hence the topology of the network.
+    The block indicates the variables of the probability distribution
+    right after the keyword <em>probability</em>. Example:
+    <pre>    probability ( Leg | Arm ) {
+       table 0.1 0.9 0.9 0.1;
+    }        
+    </pre>
+</li></dl>
+The blocks occur in the following order:
+<ul>
+  <li>A network declaration block (one, must be first).
+  </li><li>A series of variable declaration blocks 
+      and probability definition blocks, possibly inter-mixed.
+</li></ul>
+
+<h3>Attributes</h3>
+
+Several attributes are defined at this point:
+<em>property</em>, <em>type</em>, <em>table</em>, <em>default</em>
+and entry attributes (the entry attribute is not associated with
+any keyword).
+<p>
+The attribute <em>property</em> can appear in all types of blocks.
+A <em>property</em> is just a string of arbitrary text to be associated with
+a block. Examples of properties:
+     </p><pre>     property size 12;
+     property name "Trial number ten";
+     </pre>
+Any text is valid between the keyword <em>property</em> and
+the ending semicolon.
+The idea is to store information that is specific
+to a particular system or network in the properties. Any number
+of <em>property</em> attributes can appear in a block.
+<p>
+The <em>type</em> attribute is specific to 
+<em>variable</em> blocks.
+<em>type</em> lists the values of a discrete variable:
+</p><pre>type discrete[ number-of-values ] { list-of-values };
+</pre>
+The <em>number-of-values</em> token is a non-negative integer which
+indicates how many different values this variable may assume
+(the size of the <em>list-of-values</em>).
+The <em>list-of-values</em> is a sequence of words, each one the name of
+a variable value. At this point
+continuous variables are not supported 
+<strong>(should they be?)</strong>.
+<p>
+There are attributes that are specific to 
+<em>probability</em> blocks (these attributes are discussed in
+the next section):
+</p><dl>     
+  <li> <em>table</em> lists a sequence of non-negative real numbers.     
+  </li><li> <em>default</em> lists a sequence of non-negative real numbers.     
+  </li><li> the entry attribute, which is not associated
+      with any keyword.
+</li></dl>
+
+<h3>Probability Blocks</h3>
+
+Probability blocks are used to define the actual network topology
+and <i>conditional probability tables</i> (CPTs). There are two
+kinds of probability blocks:
+<ol>
+<li>Blocks for <em>standard</em> nodes; that is, nodes for
+which we have to define the probabilities for each discrete
+parent instantiation.
+</li><li>Blocks for <em>noisy functions</em>, like noisy OR, noisy AND,
+    noisy adder, etc.
+</li></ol>
+An example of a standard probability block is:
+<pre>probability(GasGauge | Gas, BatteryPower) {              
+           (yes, high) 0.999 0.001;          
+           (yes, low) 0.850 0.150;          
+           (yes, medium) 0.000 1.000;          
+           (no, high) 0.000 1.000;          
+           (no, low) 0.000 1.000;          
+           (no, medium) 0.000 1.000;  
+}
+</pre>
+As explained before, the symbols "|" and "," are ignored between
+tokens so they do not affect the list of variables given after the
+keyword <em>probability</em>. The variables however must be enclosed
+by parenthesis.
+<p>
+The example above uses the entry attribute, which is different from
+the other attributes in that it has no keyword. It simply starts with
+an opening parenthesis, and has a list of values for all the conditioning
+variables. After the closing parenthesis, a list of probability values
+for the first variable is given (note the user must provide numbers
+that add to one but this is not mandatory).
+</p><p>
+The probability vectors can be listed in any order,
+since the names in parentheses uniquely
+identify the parent instantiation.
+</p><p>
+In addition to the entry attribute,
+the Interchange Format supports the concept of a default entry.
+So the above CPT could have been specified equivalently as:
+</p><pre>probability(GasGauge | Gas, BatteryPower) {              
+            default 0.000 1.000;         
+            (yes, low)  0.850 0.150;          
+            (no, medium) 0.000 1.000;  
+}
+</pre>
+Note that each number is a separate token, so we can use "," and "|" between
+numbers; these symbols are ignored.
+<p>
+Another way to define a probability distribution is
+through the <em>table</em> attribute. The body of such attribute is
+a sequence of non-negative real numbers, in the counting order of
+the declared variables (if all variables were binary, we would say binary
+counting with least significant digit in the right). So, for the example
+above, we could simply say:
+</p><pre>probability(GasGauge | Gas, BatteryPower) {
+           table 0.999 0.850 0.0 0.0 0.0 0.0 0.001 0.15 1.0 1.0 1.0 1.0;
+}
+</pre>
+<p>
+There are some subtle rules that regulate these declarations.
+</p><dl>
+  <li> If multiple <em>default</em> declarations exist,
+      only the last one is valid.
+  </li><li> If multiple <em>table</em> declarations exist,
+      only the last one is valid.
+  </li><li> A table can contain more elements than the
+      necessary to specify a distribution; the excess elements are discarded.
+  </li><li> A table can contain less elements than the necessary to specify
+      a distribution, which is then padded with zeros.
+  </li><li> Specified entries override conflicting default and table declarations.
+</li></dl><p>
+
+</p><p>
+Noisy functions are characterized by the property
+that the probability vectors for each entry can be derived from
+the probability vectors of the parent instantiations.
+<strong>This proposal has not settled yet in a general format for noisy
+functions.</strong>
+</p><p>
+  Currently the Interchange Format adopts the suggestion from the BNIF,
+      noting that all that is necessary to reconstruct a
+      noisy-or/max/sum is the name of the function and the
+      probability that the child is true given that
+      each parent singly is true. For example if there are four parents,
+      each taking values 0 and 1, we need the rows for
+      the instantiations 1 0 0 0, 0 1 0 0, 0 0 1 0, 0 0 0 1.
+</p><p>
+From the BNIF proposal:
+      </p><p>
+Noisy functions are characterized by the property 
+that the probability vectors for each combination of conditional variables
+can be derived from
+the probability vectors of the leak parent instantiation and
+the parent instantiations in which one and only one parent assumes
+a value different from its leak value. Conceptually, the leak
+parent instantiation represents the situation in which none of
+the parents is causing the child node to be in a abnormal state,
+and hence the probability vector associated with the leak instantiation
+models influences on the child node that are not explicitly accounted
+for the parents.
+      </p><p>
+Currently, we suggest the use of a property "function"
+      to insert information about the particular noisy function.
+      For example:
+</p><pre>        probability(GasGauge | Gas, BatteryPower)  
+        {              
+            property function max;          
+            (0, 0): 0.999, 0.001;  // leak term            
+            (0, 1): 0.850, 0.150;                  
+            (0, 2): 0.000, 1.000;          
+            (1, 0): 0.000, 1.000;  
+        }
+</pre>
+      <strong>Other formats for noisy-functions will be considered
+      for implementation.</strong>
+      <p>
+</p><hr>
+
+<h2>Examples</h2>
+
+Three files are available as examples:
+<dl>
+  <li> <a href="http://www.cs.cmu.edu/%7Efgcozman/Research/InterchangeFormat/Old/dog-problem.bif">dog-problem.bif</a>, a very simple network
+      based on the discussion at
+      Charniak, E., Bayesian Networks without Tears, AI Magazine, 1991.
+  </li><li> <a href="http://www.cs.cmu.edu/%7Efgcozman/Research/InterchangeFormat/Old/elimbel2.bif">elimbel2.bif</a>, a simple network based
+      on the second example in the
+      <a href="http://www.spaces.uci.edu/thiery/elimbel/">Elimbel system</a>.  </li><li> <a href="http://www.cs.cmu.edu/%7Efgcozman/Research/InterchangeFormat/Old/car-starts.bif">car-starts.bif</a>, a somewhat large network
+      contributed by
+      <a href="http://www.cs.orst.edu/%7Enagarasr/home.html">Sreekanth
+      Nagarajan</a>, based on the
+      automobile belief network that David Heckerman and Jack Breese presented
+      in the March, 1995 issue of Communications of the ACM. 
+      
+</li></dl>
+      
+Here is a portion of the car-starts.bif
+network that was originally given in the BNIF distribution, adapted
+for the current proposal:
+<pre>network Internal-Network{ //18 variables and 18 probability distributions
+}
+
+variable Alternator{ //2 values
+        type discrete[2] { Ok Faulted };
+        property  position = (47, 42) ;
+}
+
+variable FanBelt{ //3 values
+        type discrete[3] { Ok Slipping Broken };
+        property  position = (154, 42) ;
+}
+
+probability ( BatteryPower Charge BatteryState ) { //3 variable(s) and 8 values
+        table 1 0 0 0 0 1 1 1 ;
+}
+
+probability ( GasInTank ) { //1 variable(s) and 2 values
+        table 0.5 0.5 ;
+}
+</pre>
+<p>
+
+</p><hr>
+
+<h2>Playing with the standard</h2>
+
+A number of tools have been produced so that users can test and
+experiment with the Interchange Format.
+
+<dl>
+  <li>A parser for the Interchange Format written in Java.
+  </li><li>A syntax checker for the Interchange Format.
+  </li><li>Support for the Interchange Format in the 
+      <a href="http://eel.engr.orst.edu/%7Enagarasr/bayesnet/index.html">Bayesian
+      Networks Editor</a> by
+      <a href="http://www.cs.orst.edu/%7Enagarasr/home.html">Sreekanth
+      Nagarajan</a> and
+      <a href="http://www.cs.orst.edu/%7Edambrosi/index.html">Bruce
+      D'Ambrosio</a>.
+  </li><li>Support for the Interchange Format in the
+      <a href="http://www.cs.cmu.edu/%7Ejavabayes/">JavaBayes</a> system.
+</li></dl>
+
+<h3>A parser for the Interchange Format</h3>
+
+A parser for the Interchange Format was generated using the
+<a href="http://www.suntest.com/Jack/">Jack</a> parser generator.
+The parser is generated as a Java program and should run in
+any platform which has a Java virtual machine.
+The complete specification of the parser in Jack's specification
+language is given later.
+
+The parser scans an input stream, which
+can be a file, a socket or a string, and produces either a ParseError
+object (signifying a syntax error occurred) or a BayesNet object.
+The BayesNet object contains variables and probability distributions
+that are distributed as a Java package called BayesianNetworks.
+
+The complete distribution for the parser is available at
+<a href="ftp://ftp.cs.cmu.edu/afs/cs/project/lri-3/ftp/outgoing/JavaBayes/InterchangeFormat.tar">ftp://ftp.cs.cmu.edu/afs/cs/project/lri-3/ftp/outgoing/JavaBayes/InterchangeFormat.tar</a>.
+If this address does not work for your setup, then try:
+<pre>    ftp ftp.cs.cmu.edu (login as anonymous)
+    cd /afs/cs/project/lri-3/ftp/outgoing/JavaBayes/
+    binary
+    get InterchangeFormat.tar
+</pre>
+You have to use the <tt>cd</tt> command only once; you cannot <tt>cd</tt>
+into intermediate directories.
+Now use the <tt>tar</tt> utility to create the distribution from the
+<tt>InterchangeFormat.tar</tt> file. The distribution should have:
+<dl>
+  <li>A <tt>README</tt> file with basic information, a <tt>Makefile</tt>
+      which allows you to build the Java classes for the parser in
+      a Unix system.
+  </li><li>The directory <tt>Examples</tt>, with 
+      car-starts.bif, dog-problem.bif and elimbel2.bif.
+  </li><li>The directory <tt>InterchangeFormat</tt>, with the parser
+      source code. The parser description is in the file
+      <tt>InterchangeFormat.jack</tt>; all other files in this
+      directory are generated automatically through the parser
+      generator.
+  </li><li>The directory <tt>BayesianNetworks</tt>, with the classes
+      and methods the parser uses to build a BayesNet object.
+      The <tt>BayesianNetworks</tt> package defined by these
+      classes is also used in the
+      <a href="http://wwww.cs.cmu.edu/%7Ejavabayes">JavaBayes</a> system; more
+      information about the particular data structures used
+      in the package can be found in the
+      <a href="http://www.cs.cmu.edu/%7Ejavabayes">JavaBayes</a> web site.
+  </li><li>The directory <tt>ParseTest</tt>, with files <tt>Test.html</tt>
+      and <tt>Test.java</tt>,
+      containing a syntax checker program for the Interchange Format.
+  </li><li>The directory <tt>Classes</tt> (with the subdirectory
+      <tt>BayesianNetworks</tt>), which contains all the bytecode
+      files for the Java interpreter. You can generate these
+      files by running the Java compiler in the source files provided
+      with the distribution.
+</li></dl>
+
+<h3>A syntax checker for the Interchange Format</h3>
+
+The <tt>Test.java</tt> file that comes with the parser distribution
+(previous section) is a syntax checker for the Interchange Format.
+It can be used as an application and as an applet.
+<p>
+The bytecodes for the <tt>Test</tt> program should be in the <tt>Classes</tt>
+directory in the parser distribution. To run it as an application,
+go to that directory and run <tt>java Test</tt>. A frame will be
+created; you will be asked to insert the name of a file (with the
+path to it, if necessary). Then click the <tt>Load</tt> button, and
+the <tt>Test</tt> program will run the parser in the file.
+A BayesNet object will be constructed and displayed, and some basic
+checks will be made. If you see the word "Result" popping out followed
+by some numbers, the file was successfully read. Check the console to
+see the BayesNet object printed (if you are running an applet, open
+the Java console window from your browser). 
+If there were problems with the file, a brief
+error message will be displayed in the <tt>Test</tt> program frame;
+check the console to get a more descriptive message.
+</p><p>
+To run <tt>Test</tt> as an applet, you will need a small piece of
+HTML to call the program. The file <tt>Test.html</tt> contains a minimal
+HTML document which calls the <tt>Test</tt> program. 
+</p><p>
+The <tt>Test</tt> applet is displayed below. If you have a Java
+compatible browser you should see the <tt>Test</tt> program frame.
+Type the name of one of the files (at this point only server side
+files are allowed; you can choose between
+the examples <a href="http://www.cs.cmu.edu/%7Efgcozman/Research/InterchangeFormat/Old/dog-problem.bif">dog-problem.bif</a>,
+<a href="http://www.cs.cmu.edu/%7Efgcozman/Research/InterchangeFormat/Old/elimbel2.bif">elimbel2.bif</a> and 
+<a href="http://www.cs.cmu.edu/%7Efgcozman/Research/InterchangeFormat/Old/car-starts.bif">car-starts.bif</a>.
+Type one of these names and press the <tt>Load</tt> button.
+You will see messages
+indicating the files are fetched and read; to observe the full
+messages with the BayesNet objects, open the Java console in your
+browser.
+
+</p><p>
+<applet code="The%20Interchange%20Format%20for%20Bayesian%20Networks_files/Test.htm" height="200" width="600">
+</applet>
+
+
+</p><p>
+
+</p><h3>Support for the Interchange Format in other systems</h3>
+
+Support for the Interchange Format is available in the
+<a href="http://eel.engr.orst.edu/%7Enagarasr/bayesnet/index.html">Bayesian
+Networks Editor</a> by
+<a href="http://www.cs.orst.edu/%7Enagarasr/home.html">Sreekanth
+Nagarajan</a> and
+<a href="http://www.cs.orst.edu/%7Edambrosi/index.html">Bruce D'Ambrosio</a>.
+This system gives the user
+a graphical interface for construction of Bayesian networks and performs
+inferences through a server connection (the inference engine is
+maintained at Oregon State University). For more information
+on this system, consult its
+<a href="http://eel.engr.orst.edu/%7Enagarasr/bayesnet/index.html">web site</a>.
+The current version can be
+used either as an applet (in this case the user can load/save files
+in the server side)
+or as an application (in this case the user can load/save local files in
+the Interchange Format).
+<p>
+Support for the Interchange Format is also provided in the 
+<a href="http://www.cs.cmu.edu/%7Ejavabayes">JavaBayes</a> system, by
+<a href="http://www.cs.cmu.edu/%7Efgcozman/home.html">Fabio Cozman</a>.
+This system uses the same graphical interface by
+<a href="http://www.cs.orst.edu/%7Enagarasr/home.html">Sreekanth
+Nagarajan</a> and a Java based inference engine. It runs as an applet
+(without load/save operations) and as an application (with
+load/save operations).
+The distribution can generate and read files in the Interchange Format.
+
+</p><h2>A more formal description</h2>
+
+A more formal description of the proposed Interchange Format is given here.
+The notation used by the
+<a href="http://www.suntest.com/Jack/">Jack</a> parser generator
+is used here.
+<p>
+In the description below, the patterns used by the lexer
+to define tokens are very similar to regular expressions used
+by the Unix regexp facility.
+Non-terminals have a parenthesis pair "()" after their names; terminals
+are usually capitalized.
+Some structures that may appear in expansions are:
+</p><pre>   ( e )?      : An optional occurrence of e
+   e1 | e2 | e3 | ... : A choice of e1, e2, e3, etc.
+   ( e )+             : One or more occurrences of e
+   ( e )*             : Zero or more occurrences of e
+   ["a"-"z"] matches all lower case letters
+   ~["\n","\r"] matches any character except the new line characters
+</pre>
+<hr>
+<p>
+The following patterns are ignored when they appear between tokens:
+</p><pre>" "
+"\t"
+"\n"
+"\r"
+"//" (~["\n","\r"])* ("\n"|"\r\n")
+"/*" (~["*"])* "*" (~["/"] (~["*"])* "*")* "/"
+","
+"|"
+</pre>
+<hr>
+<p>
+The definition of a word is:
+</p><pre>WORD: LETTER (LETTER | DIGIT)*
+LETTER: ["a"-"z","A"-"Z","_","-"]
+DIGIT:  ["0"-"9"] 
+</pre>
+<hr>
+<p>
+The definition of a non-negative integer number is:
+</p><pre>DECIMAL_LITERAL: ["1"-"9"] (["0"-"9"])* 
+</pre>
+<p>
+</p><hr>
+The definition of a non-negative real number is:
+<pre>FLOATING_POINT_LITERAL: (["0"-"9"])+ "." (["0"-"9"])* (EXPONENT)? 
+      | "." (["0"-"9"])+ (EXPONENT)? 
+      | (["0"-"9"])+ (EXPONENT)? 
+#EXPONENT: ["e","E"] (["+","-"])? (["0"-"9"])+
+</pre>
+<hr>
+<p>
+The following words are keywords:
+</p><pre>NETWORK: "network" 
+VARIABLE: "variable" 
+PROBABILITY: "probability" 
+PROPERTY: "property" 
+VARIABLETYPE: "type" 
+DISCRETE: "discrete" 
+DEFAULTVALUE: "default" 
+TABLEVALUES: "table" 
+</pre>
+<hr>
+<p>
+A property is defined as:
+</p><pre>PROPERTYSTRING: PROPERTY (~[";"])* ";"
+</pre>
+<hr>
+<p>
+The productions of the grammar are:
+</p><pre>CompilationUnit() :
+  NetworkDeclaration() 
+  ( VariableDeclaration()   |    ProbabilityDeclaration()  )*
+  EOF
+
+NetworkDeclaration() :
+  NETWORK WORD NetworkContent()
+
+NetworkContent() :
+  "{" ( Property()  )* "}"
+
+VariableDeclaration() :
+  VARIABLE ProbabilityVariableName() VariableContent()
+
+VariableContent(String name) :
+  "{"  ( Property() | VariableDiscrete() )*   "}"
+
+VariableDiscrete() :
+  VARIABLETYPE DISCRETE 
+    "[" DECIMAL_LITERAL "]" "{"    VariableValuesList()    "}" ";"
+
+void VariableValuesList() :
+    ProbabilityVariableValue() 
+    ( ProbabilityVariableValue() )*
+
+ProbabilityVariableValue() : WORD
+
+ProbabilityDeclaration() :
+  PROBABILITY ProbabilityVariablesList() ProbabilityContent()
+
+ProbabilityVariablesList() :
+   "("  ProbabilityVariableName() ( ProbabilityVariableName()   )* ")"
+
+ProbabilityVariableName() : <word>
+
+ProbabilityContent()
+  "{" ( Property() | ProbabilityDefaultEntry()   | ProbabilityEntry()   |
+      ProbabilityTable()  )* "}"
+
+ProbabilityEntry() :
+   ProbabilityValuesList() FloatingPointList() ";"
+
+ProbabilityValuesList() :
+   "(" ProbabilityVariableValue() ( ProbabilityVariableValue()   )* ")"
+
+ProbabilityDefaultEntry() :
+  <defaultvalue> FloatingPointList() ";"
+
+ProbabilityTable() :
+  <tablevalues> FloatingPointList() ";"
+
+FloatingPointList() :
+  FloatingPointToken()  ( FloatingPointToken()  )*
+
+FloatingPointToken() : <floating_point_literal> 
+
+Property() : <propertystring> 
+</propertystring></floating_point_literal></tablevalues></defaultvalue></word></pre>
+<p>
+</p><hr>
+<h2>Wish List</h2>
+
+Here are some of the comments and thoughts related to this proposal.
+This is mostly for easy reference; if you're not interested in the
+discussion, please skip this section.
+<p>
+</p><dl>
+  <li> (Wray Buntine) I'd suggest you have the ability to define vector
+      constants or probability table constants, and the noisy-or
+      should just be viewed as some random distribution named "noisy-or"
+      applied to a random vector that just happens to be probabilities.
+  </li><li> (Wray Buntine) For conditional probability tables, don't-cares,  i.e.
+<pre>        (yes, no, *):   0.2, 0.8
+        (no, *, yes):   0.45, 0.55
+        (yes, yes, no): 0.34, 0.66
+        default:       0.5, 0.5
+</pre>
+  </li><li> (Fabio Cozman) We could suppress the keyword "default" and just say:
+<pre>         (yes, no, *):   0.2, 0.8
+         (no, *, yes):   0.45, 0.55
+         (yes, yes, no): 0.34, 0.66
+         (*,*,*):       0.5, 0.5
+</pre>
+  </li><li> (Sreekanth Nagarajan) Can the type info be associated with
+    the variable declaration itself?
+   For eg,
+<pre>     variable continuous Flow {
+     }
+</pre>
+</li></dl>
+<hr>
+<hr width="75%">
+<hr width="50%">
+<address>
+This page is maintained by
+<a href="http://www.cs.cmu.edu/%7Efgcozman/home.html">Fabio Cozman</a>
+[<a href="mailto:fgcozman@cs.cmu.edu">Send Mail?</a>] <br> 
+</address>
+</body></html>

@@ -260,7 +260,7 @@ int main()
 	
 	Graph_Node temp = Alarm.Pres_Graph.front();
 	vector<string> myPossibleValues = temp.get_values();
-	cout<<myPossibleValues.at(0)<<endl;
+	cout<<myPosiibleValues.at(0)<<endl;
     
 // Example: to do something
 	cout<<"Perfect! Hurrah! \n";
