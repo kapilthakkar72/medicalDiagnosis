@@ -570,6 +570,64 @@ void printCPTValues(vector<float> v)
 	cout << endl;
 }
 
+void writeOutput(network Alarm)
+{
+	list<Graph_Node>::iterator lit;
+	ofstream ofile("solved_alarm.bif");
+	ifstream ifile("alarm.bif");
+	vector<float> cpts;
+	stringstream ss;
+	string line, temp;
+
+	if (ifile.is_open())
+	{
+		while (getline(ifile, line))
+		{
+			ss.str(line);
+			ss >> temp;
+
+			/* Traverse the graph and get the values */
+			if (temp.compare("probability") == 0)
+			{
+				ofile << line << endl;
+				ofile << "\ttable ";
+
+				/* Getting the variable */
+				ss >> temp;
+				ss >> temp;
+
+				/* Getting the node and the CPT values */
+				lit = Alarm.search_node(temp);
+				cpts = lit->get_CPT();
+
+				/* Outputting the CPT values to the file */
+				for (int i = 0; i < cpts.size(); i++)
+					ofile << cpts[i] << " ";
+
+				// Ending the probability part
+				ofile << ";" << endl << "}" << endl;
+
+				cpts.clear();
+
+				getline(ifile, line);
+				getline(ifile, line);
+			}
+
+			else
+				ofile << line << endl;
+
+			ss.str("");
+			ss.clear();
+		}
+
+		ofile.close();
+		ifile.close();
+	}
+
+	else
+		cout << "Unable to open file\n";
+}
+
 int main()
 {
 	network Alarm;
