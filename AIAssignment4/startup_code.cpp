@@ -5,14 +5,15 @@
 #include <fstream>
 #include <sstream>
 #include <cstdlib>
-#include <stdio.h>
+#include <cstdio>
 #include <string>
 #include <iostream>
 #include <fstream>
 #include <stdlib.h>
 #include <map>
 #include <fstream>
-#include <time.h>
+#include <ctime>
+#include <bits/stdc++.h>
 
 using namespace std;
 
@@ -32,7 +33,7 @@ private:
 	vector<string> Parents; // Parents of a particular node- note these are names of parents
 	int nvalues; // Number of categories a variable represented by this node can take
 	vector<string> values; // Categories of possible values
-	vector<float> CPT; // conditional probability table as a 1-d array . Look for BIF format to understand its meaning
+	vector<double> CPT; // conditional probability table as a 1-d array . Look for BIF format to understand its meaning
 
 public:
 	// Constructor- a node is initialised with its name and its categories
@@ -55,7 +56,7 @@ public:
 	{
 		return Parents;
 	}
-	vector<float> get_CPT()
+	vector<double> get_CPT()
 	{
 		return CPT;
 	}
@@ -67,7 +68,7 @@ public:
 	{
 		return values;
 	}
-	void set_CPT(vector<float> new_CPT)
+	void set_CPT(vector<double> new_CPT)
 	{
 		CPT.clear();
 		CPT = new_CPT;
@@ -225,7 +226,7 @@ network read_network()
 
 				ss2 >> temp;
 
-				vector<float> curr_CPT;
+				vector<double> curr_CPT;
 				string::size_type sz;
 				while (temp.compare(";") != 0)
 				{
@@ -343,7 +344,7 @@ vector<string> possibleCombinations(vector<string> parents, network Alarm)
 	return temp;
 }
 
-float getMeCPTValue(string myName, string myVal)
+double getMeCPTValue(string myName, string myVal)
 {
 	// reading file
 
@@ -356,8 +357,8 @@ float getMeCPTValue(string myName, string myVal)
 	string line;
 	inputFile.open(inputFileName.c_str());
 
-	float overAllCount = 0.0f;
-	float matchedCount = 0.0f;
+	double overAllCount = 0.0f;
+	double matchedCount = 0.0f;
 
 	if (inputFile.is_open())
 	{
@@ -408,7 +409,7 @@ float getMeCPTValue(string myName, string myVal)
 		//cout<<"Node:"<<myName<<" Value:"<<myVal<<endl;
 		//cout << "Overall Count" << overAllCount << endl;
 		//cout << "matched count" << matchedCount << endl;
-		float result = matchedCount / overAllCount;
+		double result = matchedCount / overAllCount;
 		//cout << "Result" << result << endl;
 		return result;
 	}
@@ -419,25 +420,25 @@ float getMeCPTValue(string myName, string myVal)
 	}
 }
 
-float getMeCPTValue(string myName, string myVal,
+double getMeCPTValue(string myName, string myVal,
 		vector<string> nameOfMyParents, string valuesOfMyParents)
 {
 	// reading file
 
-	//cout << "Inside get me CPT Value :\n" << endl;
-	//cout << "My name :" << myName << endl;
-	//cout << "My Val:" << myVal << endl;
-	//cout << "Values of my parents:" << valuesOfMyParents << endl;
-	//cout << "Name of my parents:\n";
-	//printStringVector(nameOfMyParents);
+//	cout << "Inside get me CPT Value :\n" << endl;
+//	cout << "My name :" << myName << endl;
+//	cout << "My Val:" << myVal << endl;
+//	cout << "Values of my parents:" << valuesOfMyParents << endl;
+//	cout << "Name of my parents:\n";
+//	printStringVector(nameOfMyParents);
 	//cout << endl;
 	string inputFileName = "records.dat";
 	ifstream inputFile;
 	string line;
 	inputFile.open(inputFileName.c_str());
 
-	float overAllCount = 0.0f;
-	float matchedCount = 0.0f;
+	double overAllCount = 0.0f;
+	double matchedCount = 0.0f;
 
 	if (inputFile.is_open())
 	{
@@ -465,8 +466,10 @@ float getMeCPTValue(string myName, string myVal,
 			// check for each parent
 			string parentsVal[37];
 			splitString(valuesOfMyParents, " ", parentsVal);
+			//cout<<"Loop start\n";
 			for (int i = 0; i < nameOfMyParents.size(); i++)
 			{
+				//cout<<"i is:"<<i<<" Checking for parent "<<nameOfMyParents.at(i)<<" at index "<<nameToIndex[nameOfMyParents.at(i)]<<endl;
 				if (vars[nameToIndex[nameOfMyParents.at(i)]].compare("\"?\"")
 						== 0)
 				{
@@ -476,10 +479,11 @@ float getMeCPTValue(string myName, string myVal,
 				else if (vars[nameToIndex[nameOfMyParents.at(i)]].compare(
 						parentsVal[i]) != 0)
 				{
-					reqdValFound = false;
-					break;
+					countRow = false;
+					//break;
 				}
 			}
+			//cout<<"Loop end\n";
 
 			if (countRow == false)
 			{
@@ -499,7 +503,12 @@ float getMeCPTValue(string myName, string myVal,
 	}
 	if (overAllCount != 0)
 	{
-		return matchedCount / overAllCount;
+//		cout<<"Node:"<<myName<<" Value:"<<myVal<<endl;
+//		cout << "Overall Count" << overAllCount << endl;
+//		cout << "matched count" << matchedCount << endl;
+		double result = matchedCount / overAllCount;
+//		cout << "Result" << result << endl;
+		return result;
 	}
 	else
 	{
@@ -508,11 +517,11 @@ float getMeCPTValue(string myName, string myVal,
 	}
 }
 
-vector<float> generateCPTValueForThisNode(Graph_Node node, network Alarm)
+vector<double> generateCPTValueForThisNode(Graph_Node node, network Alarm)
 {
 	// here we will have parents
 	// we need to iterate through one possible value of this node and one value of this parent
-	vector<float> cptValues;
+	vector<double> cptValues;
 	vector<string> myPossibleValues = node.get_values();
 
 	//cout << "My Possible Values:" << endl;
@@ -537,14 +546,14 @@ vector<float> generateCPTValueForThisNode(Graph_Node node, network Alarm)
 					possibleCombinationsOfParents.begin(); parentC
 					!= possibleCombinationsOfParents.end(); parentC++)
 			{
-				float oneCPTVal = getMeCPTValue(node.get_name(),
+				double oneCPTVal = getMeCPTValue(node.get_name(),
 						myPossibleValues.at(i), parents, (*parentC));
 				cptValues.push_back(oneCPTVal);
 			}
 		}
 		else
 		{
-			float cptValForthisVal = getMeCPTValue(node.get_name(),
+			double cptValForthisVal = getMeCPTValue(node.get_name(),
 					myPossibleValues.at(i));
 			cptValues.push_back(cptValForthisVal);
 		}
@@ -561,9 +570,9 @@ void generateMapNameToIndex(network Alarm)
 	}
 }
 
-void printCPTValues(vector<float> v)
+void printCPTValues(vector<double> v)
 {
-	for (vector<float>::iterator i = v.begin(); i != v.end(); i++)
+	for (vector<double>::iterator i = v.begin(); i != v.end(); i++)
 	{
 		cout << *i << " ";
 	}
@@ -575,7 +584,7 @@ void writeOutput(network Alarm)
 	list<Graph_Node>::iterator lit;
 	ofstream ofile("solved_alarm.bif");
 	ifstream ifile("alarm.bif");
-	vector<float> cpts;
+	vector<double> cpts;
 	stringstream ss;
 	string line, temp;
 
@@ -602,7 +611,7 @@ void writeOutput(network Alarm)
 
 				/* Outputting the CPT values to the file */
 				for (int i = 0; i < cpts.size(); i++)
-					ofile << cpts[i] << " ";
+					ofile << fixed << setprecision(4) << cpts[i] << " ";
 
 				// Ending the probability part
 				ofile << ";" << endl << "}" << endl;
@@ -641,7 +650,7 @@ int main()
 	{
 		Graph_Node current_node = (*(Alarm.get_nth_node(i)));
 		//cout << " Processing node:" << current_node.get_name() << endl;
-		vector<float> cptValues = generateCPTValueForThisNode(current_node,
+		vector<double> cptValues = generateCPTValueForThisNode(current_node,
 				Alarm);
 
 		(*(Alarm.get_nth_node(i))).set_CPT(cptValues);
@@ -654,6 +663,8 @@ int main()
 		cout << "Current Node:" << current_node.get_name() << endl;
 		printCPTValues(current_node.get_CPT());
 	}
+
+	writeOutput(Alarm);
 
 	// Example: to do something
 	cout << "Perfect! Hurrah! \n";
