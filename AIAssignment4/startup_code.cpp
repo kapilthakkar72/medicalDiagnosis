@@ -20,10 +20,17 @@ using namespace std;
 // Global Variables
 
 
+typedef pair<int, int> ii;
+
 struct record
 {
 	double wt;
 	vector<string> var;
+	record(double w, vector<string> v)
+	{
+		wt = w;
+		var = v;
+	}
 };
 
 map<string, int> nameToIndex;
@@ -261,6 +268,9 @@ network read_network()
 
 	return Alarm;
 }
+
+//Gets me the node directly
+vector<list<Graph_Node>::iterator> indexToNode;
 
 vector<string> getPossibleValues(string nodeName, network Alarm)
 {
@@ -842,12 +852,163 @@ void writeOutput(network Alarm)
 		cout << "Unable to open file\n";
 }
 
+/* First is the index, next is the size
+ Returns the index from which to fetch the CPT value */
+int calculateIndex(vector<ii> indices)
+{
+	int prod = 1, sum = 0;
+	for (int i = indices.size() - 1; i >= 0; i--)
+	{
+		sum += prod * indices[i].first;
+		prod *= indices[i].second;
+	}
+	return sum;
+}
+
+// this function returns the index at which the give val is present in the possible vals
+int indexOfValue(list<Graph_Node>::iterator it, string val)
+{
+	Graph_Node g = *it;
+	vector<string> values = g.get_values();
+	int noOfValues = g.get_nvalues();
+	for (i = 0; i < noOfValues; ++i)
+	{
+		if (val.compare(values.at(i)) == 0)
+		{
+			return i;
+		}
+		else
+		{
+			cerr << "Could not find the given value\n";
+			return 0;
+		}
+	}
+}
+
+double computeProbability(vector<string> sample)
+{
+	list<Graph_Node>::iterator lit, plit;
+	vector<string> parents;
+	vector<ii> indices;
+	vector<double> myCPT;
+	double prob = 1.0;
+	int k, n, p;
+	for (int i = 0; i < sample.size(); i++)
+	{
+		//TODO:ASK lit = indexToName[i];
+
+		lit = indexToNode.at(i);
+
+		//My cpt table
+		myCPT = lit->get_CPT();
+		//Index of my sample value
+		k = lit->get_index(sample[i]);
+		//My domain size
+		n = lit->get_nvalues();
+		indices.push_back(ii(k, n));
+		//Get my parents
+		parents = lit->get_Parents();
+		for (int j = 0; j < parents.size(); j++)
+		{
+			// Iterator to the parent
+			p = nameToIndex[parents[j]];
+			plit = indexToNode[k];
+			k = plit->get_index(sample[p]);
+			n = plit->get_nvalues();
+			indices.push_back(ii(k, n));
+		}
+		int index = calculateIndex(indices);
+		prob *= myCPT[index];
+	}
+	return prob;
+}
+
+void initializeData(network Alarm)
+{
+	ifstream ifile("records.dat");
+	list<Graph_Node>::iterator lit;
+	string line, value, unknownVar;
+	//TODO:ASK vector<double> domain;
+
+	vector<string> domain;
+
+	vector<string> tempVar(37);
+	stringstream ss;
+	int unknown;
+	while (getline(ifile, line))
+	{
+		//Iterating over each line to construct the inital table
+		ss.str(line);
+		int i = 0;
+		unknown = -1;
+		while (getline(ss, value))
+		{
+			if (value == "\"?\"")
+				unknown = i;
+			else
+				tempVar[i] = value;
+			i++;
+		}
+		// If the record has a unknown value
+		if (unknown != -1)
+		{
+			// Get the variable name
+			//unknownVar = indexToName[unknown];
+			// Get the node in the graph
+			//lit = Alarm.search_node(unknownVar);
+			lit = indexToNode[unknown];
+
+			// Get the domain values TODO:RELATE
+			domain = lit->get_values();
+			// Iterate over the domain values and get the complete sample
+			double w = 0.0, tw = 0.0;
+			int ds = domain.size();
+			for (int j = 0; j < ds; j++)
+			{
+				tempVar[unknown] = domain[j];
+				//tempVar has the complete sample, compute its probability
+				w = computeProbability(tempVar);
+				tw += w;
+				//Insert into the table
+				record r(w, tempVar);
+				table.push_back(r);
+			}
+			//Need to normalize the weights
+			//double totalWt = accumulate(wts.begin(), wts.end(), 0.0);
+			for (int j = table.size() - 1; j >= (table.size() - ds); j--)
+				table[j].wt /= tw;
+			wts.clear();
+			domain.clear();
+		}
+		else
+		{
+			// Insert in the table the sample with weight 1
+			record r(1.0, tempVar);
+			table.push_back(r);
+		}
+		tempVar.clear();
+	}
+}
+
+void recalculateTable()
+{
+	for (int i = 0; i < table.size(); i++)
+	{
+		double nw = computeProbability(table[i].var);
+		table[i].wt = nw;
+	}
+}
+
 int main()
 {
 	network Alarm;
 	Alarm = read_network();
 
 	generateMapNameToIndex(Alarm);
+
+	// This will generate structure(vector) to map index to node
+	for (int i = 0; i < Alarm.netSize(); i++)
+		indexToNode.push_back(Alarm.get_nth_node(i));
 
 	// Iterate over all nodes
 	// Initialisation step
@@ -872,6 +1033,12 @@ int main()
 
 	cout << "Initialization done\nGoing for Algorithm\n";
 
+	// Initializing "?" in records
+
+	initializeData(Alarm);
+
+	// calculating CPT values
+
 	for (int i = 0; i < Alarm.netSize(); i++)
 	{
 		Graph_Node current_node = (*(Alarm.get_nth_node(i)));
@@ -888,4 +1055,3 @@ int main()
 	cout << "Perfect! Hurrah! \n";
 	return 0;
 }
-
