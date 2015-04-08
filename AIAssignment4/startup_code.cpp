@@ -18,7 +18,16 @@
 using namespace std;
 
 // Global Variables
+
+
+struct record
+{
+	double wt;
+	vector<string> var;
+};
+
 map<string, int> nameToIndex;
+vector<record> table;
 
 // Format checker just assumes you have Alarm.bif and Solved_Alarm.bif (your file) in current directory
 
@@ -420,17 +429,82 @@ double getMeCPTValue(string myName, string myVal)
 	}
 }
 
+double getMeCPTValueWithWt(string myName, string myVal)
+{
+	// reading file
+
+	//cout << "Inside get me CPT Value :\n" << endl;
+	//cout << "My name :" << myName << endl;
+	//cout << "My Val:" << myVal << endl;
+
+	double overAllCount = 0.0f;
+	double matchedCount = 0.0f;
+
+	for (int i = 0; i < table.size(); i++)
+	{
+		bool countRow = true; // No ? in the row
+		bool reqdValFound = true;
+
+		//cout << "line" << line << endl;
+
+		// Check for myself and my parents
+		int myIndex = nameToIndex[myName];
+
+		if (table.at(i).var.at(myIndex).compare("\"?\"") == 0)
+		{
+			//cout<<"Question mark found"<<endl;
+			continue;
+		}
+
+		if (table.at(i).var.at(myIndex).compare((myVal)) != 0)
+		{
+			//cout << "index:" << vars[myIndex] << endl;
+			//cout << "myval:" << myVal << endl;
+			reqdValFound = false;
+		}
+
+		if (countRow == false)
+		{
+			continue;
+		}
+		else if (reqdValFound == false)
+		{
+			overAllCount += table.at(i).wt;
+		}
+		else
+		{
+			overAllCount += table.at(i).wt;
+			matchedCount += table.at(i).wt;
+		}
+
+	}
+	if (overAllCount != 0)
+	{
+		//cout<<"Node:"<<myName<<" Value:"<<myVal<<endl;
+		//cout << "Overall Count" << overAllCount << endl;
+		//cout << "matched count" << matchedCount << endl;
+		double result = matchedCount / overAllCount;
+		//cout << "Result" << result << endl;
+		return result;
+	}
+	else
+	{
+		cout << "Error while reading data inside 2 parameters" << endl;
+		return 0.0;
+	}
+}
+
 double getMeCPTValue(string myName, string myVal,
 		vector<string> nameOfMyParents, string valuesOfMyParents)
 {
 	// reading file
 
-//	cout << "Inside get me CPT Value :\n" << endl;
-//	cout << "My name :" << myName << endl;
-//	cout << "My Val:" << myVal << endl;
-//	cout << "Values of my parents:" << valuesOfMyParents << endl;
-//	cout << "Name of my parents:\n";
-//	printStringVector(nameOfMyParents);
+	//	cout << "Inside get me CPT Value :\n" << endl;
+	//	cout << "My name :" << myName << endl;
+	//	cout << "My Val:" << myVal << endl;
+	//	cout << "Values of my parents:" << valuesOfMyParents << endl;
+	//	cout << "Name of my parents:\n";
+	//	printStringVector(nameOfMyParents);
 	//cout << endl;
 	string inputFileName = "records.dat";
 	ifstream inputFile;
@@ -503,11 +577,11 @@ double getMeCPTValue(string myName, string myVal,
 	}
 	if (overAllCount != 0)
 	{
-//		cout<<"Node:"<<myName<<" Value:"<<myVal<<endl;
-//		cout << "Overall Count" << overAllCount << endl;
-//		cout << "matched count" << matchedCount << endl;
+		//		cout<<"Node:"<<myName<<" Value:"<<myVal<<endl;
+		//		cout << "Overall Count" << overAllCount << endl;
+		//		cout << "matched count" << matchedCount << endl;
 		double result = matchedCount / overAllCount;
-//		cout << "Result" << result << endl;
+		//		cout << "Result" << result << endl;
 		return result;
 	}
 	else
@@ -515,6 +589,137 @@ double getMeCPTValue(string myName, string myVal,
 		cout << "Error while reading data inside 4 parameters" << endl;
 		return 0.0;
 	}
+}
+
+double getMeCPTValueWithWt(string myName, string myVal,
+		vector<string> nameOfMyParents, string valuesOfMyParents)
+{
+	// reading file
+
+	//	cout << "Inside get me CPT Value :\n" << endl;
+	//	cout << "My name :" << myName << endl;
+	//	cout << "My Val:" << myVal << endl;
+	//	cout << "Values of my parents:" << valuesOfMyParents << endl;
+	//	cout << "Name of my parents:\n";
+	//	printStringVector(nameOfMyParents);
+	//cout << endl;
+
+	double overAllCount = 0.0;
+	double matchedCount = 0.0;
+
+	for (int j = 0; j < table.size(); j++)
+	{
+
+		bool countRow = true; // No ? in the row
+		bool reqdValFound = true;
+
+		// Check for myself and my parents
+		int myIndex = nameToIndex[myName];
+
+		if (table.at(j).var.at(myIndex).compare("\"?\"") == 0)
+		{
+			continue;
+		}
+
+		if (table.at(j).var.at(myIndex).compare((myVal)) != 0)
+		{
+			reqdValFound = false;
+		}
+
+		// check for each parent
+		string parentsVal[37];
+		splitString(valuesOfMyParents, " ", parentsVal);
+		//cout<<"Loop start\n";
+		for (int i = 0; i < nameOfMyParents.size(); i++)
+		{
+			//cout<<"i is:"<<i<<" Checking for parent "<<nameOfMyParents.at(i)<<" at index "<<nameToIndex[nameOfMyParents.at(i)]<<endl;
+			if (table.at(j).var.at(nameToIndex[nameOfMyParents.at(i)]).compare(
+					"\"?\"") == 0)
+			{
+				countRow = false;
+				break;
+			}
+			else if (table.at(j).var.at(nameToIndex[nameOfMyParents.at(i)]).compare(
+					parentsVal[i]) != 0)
+			{
+				countRow = false;
+				//break;
+			}
+		}
+		//cout<<"Loop end\n";
+
+		if (countRow == false)
+		{
+			continue;
+		}
+		else if (reqdValFound == false)
+		{
+			overAllCount += table.at(j).wt;
+		}
+		else
+		{
+			matchedCount += table.at(j).wt;
+			overAllCount += table.at(j).wt;
+		}
+	}
+	if (overAllCount != 0)
+	{
+		//		cout<<"Node:"<<myName<<" Value:"<<myVal<<endl;
+		//		cout << "Overall Count" << overAllCount << endl;
+		//		cout << "matched count" << matchedCount << endl;
+		double result = matchedCount / overAllCount;
+		//		cout << "Result" << result << endl;
+		return result;
+	}
+	else
+	{
+		cout << "Error while reading data inside 4 parameters" << endl;
+		return 0.0;
+	}
+}
+
+vector<double> generateCPTValueForThisNodeWithWt(Graph_Node node, network Alarm)
+{
+	// here we will have parents
+	// we need to iterate through one possible value of this node and one value of this parent
+	vector<double> cptValues;
+	vector<string> myPossibleValues = node.get_values();
+
+	//cout << "My Possible Values:" << endl;
+	//printStringVector(myPossibleValues);
+
+	vector<string> parents = node.get_Parents();
+
+	//cout << "My patents:" << endl;
+	//printStringVector(parents);
+
+	vector<string> possibleCombinationsOfParents = possibleCombinations(
+			parents, Alarm);
+
+	//cout << "Possible combinations of parents:" << endl;
+	//printStringVector(possibleCombinationsOfParents);
+
+	for (int i = 0; i < node.get_nvalues(); i++)
+	{
+		if (parents.size() != 0)
+		{
+			for (vector<string>::iterator parentC =
+					possibleCombinationsOfParents.begin(); parentC
+					!= possibleCombinationsOfParents.end(); parentC++)
+			{
+				double oneCPTVal = getMeCPTValueWithWt(node.get_name(),
+						myPossibleValues.at(i), parents, (*parentC));
+				cptValues.push_back(oneCPTVal);
+			}
+		}
+		else
+		{
+			double cptValForthisVal = getMeCPTValueWithWt(node.get_name(),
+					myPossibleValues.at(i));
+			cptValues.push_back(cptValForthisVal);
+		}
+	}
+	return cptValues;
 }
 
 vector<double> generateCPTValueForThisNode(Graph_Node node, network Alarm)
@@ -645,6 +850,7 @@ int main()
 	generateMapNameToIndex(Alarm);
 
 	// Iterate over all nodes
+	// Initialisation step
 
 	for (int i = 0; i < Alarm.netSize(); i++)
 	{
@@ -662,6 +868,18 @@ int main()
 		Graph_Node current_node = (*(Alarm.get_nth_node(i)));
 		cout << "Current Node:" << current_node.get_name() << endl;
 		printCPTValues(current_node.get_CPT());
+	}
+
+	cout << "Initialization done\nGoing for Algorithm\n";
+
+	for (int i = 0; i < Alarm.netSize(); i++)
+	{
+		Graph_Node current_node = (*(Alarm.get_nth_node(i)));
+		//cout << " Processing node:" << current_node.get_name() << endl;
+		vector<double> cptValues = generateCPTValueForThisNodeWithWt(
+				current_node, Alarm);
+
+		(*(Alarm.get_nth_node(i))).set_CPT(cptValues);
 	}
 
 	writeOutput(Alarm);
